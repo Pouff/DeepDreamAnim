@@ -113,7 +113,7 @@ def make_sure_path_exists(path):
 
 
 def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter, zoom, stepsize, blend, layers, guide,
-         gpu, flow):
+         gpu, flow, binocular):
     # input var setup
     make_sure_path_exists(inputdir)
     make_sure_path_exists(outputdir)
@@ -129,6 +129,10 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
     if layers is None: layers = ['inception_4c/output']
     if gpu is None: gpu = 1
     if flow is None: flow = 0
+    if binocular is None:
+        binocular = 0
+    else if binocular != 0:
+        assert(flow != 0) # currently binocular and optic flow are meant to work together
     # net.blobs.keys()
 
     # Loading DNN model
@@ -325,6 +329,8 @@ if __name__ == "__main__":
     parser.add_argument('-flow', '--flow', help='Optical Flow.', type=int, required=False)
     parser.add_argument('-gpu', '--gpu', help='Use GPU or CPU.', type=int, required=False)
     parser.add_argument('-f', '--framerate', help='Video creation Framerate.', type=int, required=False)
+    parser.add_argument('-n','--binocular', help='Create 3D dream images from binocular input', type=int,
+                        required=False)
 
     args = parser.parse_args()
 
@@ -336,4 +342,4 @@ if __name__ == "__main__":
         createVideo(args.input, args.output, framerate)
     else:
         main(args.input, args.output, args.preview, args.octaves, args.octavescale, args.iterations, args.jitter,
-             args.zoom, args.stepsize, args.blend, args.layers, args.guide, args.gpu, args.flow)
+             args.zoom, args.stepsize, args.blend, args.layers, args.guide, args.gpu, args.flow, args.binocular)
