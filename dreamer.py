@@ -137,9 +137,9 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
 
     # Loading DNN model
     model_name = 'bvlc_googlenet'
-    model_path = '../../caffe/models/' + model_name + '/'
-    net_fn = model_path + 'deploy.prototxt'
-    param_fn = model_path + 'bvlc_googlenet.caffemodel'
+    model_path = os.path.join('../../caffe/models/', model_name)
+    net_fn = os.path.join(model_path, 'deploy.prototxt')
+    param_fn = os.path.join(model_path, 'bvlc_googlenet.caffemodel')
 
     # Patching model to be able to compute gradients.
     # Note that you can also manually add "force_backward: true" line to "deploy.prototxt".
@@ -157,24 +157,40 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
         caffe.set_device(0)
 
     # load images & sort them
-    vidinput = os.listdir(inputdir)
-    #vidinput = natsort.natsorted(os.listdir(inputdir))
-    vids = []
+    if binocular = 1:
+        vidinput_left  = os.listdir(os.path.join(inputdir, 'Left'))
+        vidinput_right = os.listdir(os.path.join(inputdir, 'Right'))
+        vids = [[],[]]
+        for frame in vidinput_left:
+            if not ".png" in frame: continue
+            vids[0].append(frame)
+        for frame in vidinput_right:
+            if not ".png" in frame: continue
+            vids[1].append(frame)
+        assert(len(vids[0]) == len(vids[1]), 'Left and right videos must have same number of frames')
+        frame0 = vids[0][0]
+        numframe = len(vids[0])
+    else:
+        vidinput = os.listdir(inputdir)
+        #vidinput = natsort.natsorted(os.listdir(inputdir))
+        vids = []
+        # create list
+        for frame in vidinput:
+            if not ".png" in frame: continue
+            vids.append(frame)
+        frame0 = vids[0]
+        numframe = len(vids)
+
     var_counter = 1
 
-    # create list
-    for frame in vidinput:
-        if not ".png" in frame: continue
-        vids.append(frame)
-
-    img = PIL.Image.open(inputdir + '/' + vids[0])
+    img = PIL.Image.open(os.path.join(inputdir, frame0))
     if preview is not 0:
-        img = resizePicture(inputdir + '/' + vids[0], preview)
+        img = resizePicture(os.path.join(inputdir, frame0), preview)
     frame = np.float32(img)
 
     # guide
     if guide is not None:
-        guideimg = PIL.Image.open(inputdir + '/' + guide)
+        guideimg = PIL.Image.open(os.path.join(inputdir, guide))
         guideimgresized = guideimg.resize((224, 224), PIL.Image.ANTIALIAS)
         guide = np.float32(guideimgresized)
         end = layers[0]  # 'inception_3b/output'
@@ -203,34 +219,35 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
             return deepdream(net, frame, iter_n=iterations, step_size=stepsize, octave_n=octaves,
                              octave_scale=octave_scale, jitter=jitter, end=endparam, objective=objective_guide)
 
-    def getStats(saveframe, var_counter, vids, difference):
+    def getStats(saveframe, var_counter, numframe, difference):
         # Stats
         print '***************************************'
         print 'Saving Image As: ' + saveframe
-        print 'Frame ' + str(var_counter) + ' of ' + str(len(vids))
+        print 'Frame ' + str(var_counter) + ' of ' + str(numframe)
         print 'Frame Time: ' + str(difference) + 's'
-        timeleft = difference * (len(vids) - var_counter)
+        timeleft = difference * (numframe - var_counter)
         m, s = divmod(timeleft, 60)
         h, m = divmod(m, 60)
         print 'Estimated Total Time Remaining: ' + str(timeleft) + 's (' + "%d:%02d:%02d" % (h, m, s) + ')'
         print '***************************************'
 
     if flow is 1:
+        assert(binocular == 0, '3D not yet implemented')
         import cv2
 
         # optical flow
-        img = np.float32(PIL.Image.open(inputdir + '/' + vids[0]))
+        img = np.float32(PIL.Image.open(os.path.join(inputdir, frame0)))
         h, w, c = img.shape
         hallu = getFrame(net, img, layers[0])
         np.clip(hallu, 0, 255, out=hallu)
-        PIL.Image.fromarray(np.uint8(hallu)).save(outputdir + '/' + 'frame_000000.png')
+        PIL.Image.fromarray(np.uint8(hallu)).save(os.path.join(outputdir, 'frame_000000.png'))
         grayImg = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        for v in range(len(vids)):
-            if var_counter < len(vids):
+        for v in range(numframe):
+            if var_counter < numframe:
                 previousImg = img
                 previousGrayImg = grayImg
 
-                newframe = inputdir + '/' + vids[v + 1]
+                newframe = os.path.join(inputdir, vids[v + 1])
                 print 'Processing: ' + newframe
                 endparam = layers[var_counter % len(layers)]
 
@@ -249,8 +266,8 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
                 hallu = getFrame(net, hallu, endparam)
                 later = time.time()
                 difference = int(later - now)
-                saveframe = outputdir + '/' + 'frame_%06d.png' % (var_counter)
-                getStats(saveframe, var_counter, vids, difference)
+                saveframe = os.path.joint(outputdir, 'frame_%06d.png' % (var_counter))
+                getStats(saveframe, var_counter, numframe, difference)
 
                 np.clip(hallu, 0, 255, out=hallu)
                 PIL.Image.fromarray(np.uint8(hallu)).save(saveframe)
@@ -259,13 +276,13 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
                 print 'Finished processing all frames'
     else:
         # process anim frames
-        for v in range(len(vids)):
-            if var_counter < len(vids):
+        for v in range(numframe):
+            if var_counter < numframe:
                 vid = vids[v]
                 h, w = frame.shape[:2]
                 s = 0.05  # scale coefficient  
 
-                print 'Processing: ' + inputdir + '/' + vid
+                print 'Processing: ' + os.path.join(inputdir, vid)
 
                 # setup
                 now = time.time()
@@ -273,14 +290,14 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
                 frame = getFrame(net, frame, endparam)
                 later = time.time()
                 difference = int(later - now)
-                saveframe = outputdir + '/' + 'frame_%06d.png' % (var_counter)
-                getStats(saveframe, var_counter, vids, difference)
+                saveframe = os.path.join(outputdir, 'frame_%06d.png' % (var_counter))
+                getStats(saveframe, var_counter, numframe, difference)
 
                 # save image
                 PIL.Image.fromarray(np.uint8(frame)).save(saveframe)
 
                 # setup next image
-                newframe = inputdir + '/' + vids[v + 1]
+                newframe = os.path.join(inputdir, vids[v + 1])
 
                 # blend
                 if blend == 0:
