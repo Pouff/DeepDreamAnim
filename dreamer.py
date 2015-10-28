@@ -244,10 +244,18 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
             grayImgLeft = cv2.cvtColor(imgLeft, cv2.COLOR_RGB2GRAY)
 
             imgRight = np.float32(PIL.Image.open(os.path.join(inputdir, 'Right', vids[1][0])))
-            halluRight = getFrame(net, imgRight, layers[0])
+            grayImgRight = cv2.cvtColor(imgRight, cv2.COLOR_RGB2GRAY)
+            flow = cv2.calcOpticalFlowFarneback(grayImgLeft, grayImgRight, pyr_scale=0.5, levels=3, winsize=15,
+                                                iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+            flow = -flow
+            flow[:, :, 0] += np.arange(w)
+            flow[:, :, 1] += np.arange(h)[:, np.newaxis]
+            halludiff = halluLeft - imgLeft
+            halludiff = cv2.remap(halludiff, flow, None, cv2.INTER_LINEAR)
+            halluRight = imgRight + halludiff
+            halluRight = getFrame(net, halluRight, layers[0])
             np.clip(halluRight, 0, 255, out=halluRight)
             PIL.Image.fromarray(np.uint8(halluRight)).save(os.path.join(outputdir, 'Right', 'frame_000000.png'))
-            grayImgRight = cv2.cvtColor(imgRight, cv2.COLOR_RGB2GRAY)
 
             for v in range(numframe):
                 if var_counter < numframe:
