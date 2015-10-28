@@ -232,48 +232,92 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
         print '***************************************'
 
     if flow is 1:
-        assert(binocular == 0, '3D not yet implemented')
         import cv2
 
         # optical flow
-        img = np.float32(PIL.Image.open(os.path.join(inputdir, frame0)))
-        h, w, c = img.shape
-        hallu = getFrame(net, img, layers[0])
-        np.clip(hallu, 0, 255, out=hallu)
-        PIL.Image.fromarray(np.uint8(hallu)).save(os.path.join(outputdir, 'frame_000000.png'))
-        grayImg = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-        for v in range(numframe):
-            if var_counter < numframe:
-                previousImg = img
-                previousGrayImg = grayImg
+        if binocular == 1:
+            imgLeft = np.float32(PIL.Image.open(os.path.join(inputdir, 'Left', frame0)))
+            h, w, c = imgLeft.shape
+            halluLeft = getFrame(net, imgLeft, layers[0])
+            np.clip(halluLeft, 0, 255, out=halluLeft)
+            PIL.Image.fromarray(np.uint8(halluLeft)).save(os.path.join(outputdir, 'Left', 'frame_000000.png'))
+            grayImgLeft = cv2.cvtColor(imgLeft, cv2.COLOR_RGB2GRAY)
 
-                newframe = os.path.join(inputdir, vids[v + 1])
-                print 'Processing: ' + newframe
-                endparam = layers[var_counter % len(layers)]
+            for v in range(numframe):
+                if var_counter < numframe:
+                    previousImgLeft = imgLeft
+                    previousGrayImgLeft = grayImgLeft
 
-                img = np.float32(PIL.Image.open(newframe))
-                grayImg = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-                flow = cv2.calcOpticalFlowFarneback(previousGrayImg, grayImg, pyr_scale=0.5, levels=3, winsize=15,
-                                                    iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
-                flow = -flow
-                flow[:, :, 0] += np.arange(w)
-                flow[:, :, 1] += np.arange(h)[:, np.newaxis]
-                halludiff = hallu - previousImg
-                halludiff = cv2.remap(halludiff, flow, None, cv2.INTER_LINEAR)
-                hallu = img + halludiff
+                    previousImgRight = imgRight
+                    previousGrayImgRight = grayImgRight
 
-                now = time.time()
-                hallu = getFrame(net, hallu, endparam)
-                later = time.time()
-                difference = int(later - now)
-                saveframe = os.path.joint(outputdir, 'frame_%06d.png' % (var_counter))
-                getStats(saveframe, var_counter, numframe, difference)
+                    newframeLeft = os.path.join(inputdir, 'Left', vids[0][v + 1])
+                    print 'Processing: ' + newframeLeft
+                    endparam = layers[var_counter % len(layers)]
 
-                np.clip(hallu, 0, 255, out=hallu)
-                PIL.Image.fromarray(np.uint8(hallu)).save(saveframe)
-                var_counter += 1
-            else:
-                print 'Finished processing all frames'
+                    imgLeft = np.float32(PIL.Image.open(newframeLeft))
+                    grayImgLeft = cv2.cvtColor(imgLeft, cv2.COLOR_RGB2GRAY)
+                    flow = cv2.calcOpticalFlowFarneback(previousGrayImgLeft, grayImgLeft, pyr_scale=0.5, levels=3, winsize=15,
+                                                        iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+                    flow = -flow
+                    flow[:, :, 0] += np.arange(w)
+                    flow[:, :, 1] += np.arange(h)[:, np.newaxis]
+                    halludiffLeft = halluLeft - previousImgLeft
+                    halludiffLeft = cv2.remap(halludiffLeft, flow, None, cv2.INTER_LINEAR)
+                    halluLeft = imgLeft + halludiffLeft
+
+                    now = time.time()
+                    halluLeft = getFrame(net, halluLeft, endparam)
+                    later = time.time()
+                    difference = int(later - now)
+                    saveframe = os.path.joint(outputdir, 'Left', 'frame_%06d.png' % (var_counter))
+                    getStats(saveframe, var_counter, numframe, difference)
+
+                    np.clip(halluLeft, 0, 255, out=halluLeft)
+                    PIL.Image.fromarray(np.uint8(halluLeft)).save(saveframe)
+                    var_counter += 1
+                else:
+                    print 'Finished processing all frames'
+        else:
+            img = np.float32(PIL.Image.open(os.path.join(inputdir, frame0)))
+            h, w, c = img.shape
+            hallu = getFrame(net, img, layers[0])
+            np.clip(hallu, 0, 255, out=hallu)
+            PIL.Image.fromarray(np.uint8(hallu)).save(os.path.join(outputdir, 'frame_000000.png'))
+            grayImg = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+
+            for v in range(numframe):
+                if var_counter < numframe:
+                    previousImg = img
+                    previousGrayImg = grayImg
+
+                    newframe = os.path.join(inputdir, vids[v + 1])
+                    print 'Processing: ' + newframe
+                    endparam = layers[var_counter % len(layers)]
+
+                    img = np.float32(PIL.Image.open(newframe))
+                    grayImg = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+                    flow = cv2.calcOpticalFlowFarneback(previousGrayImg, grayImg, pyr_scale=0.5, levels=3, winsize=15,
+                                                        iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+                    flow = -flow
+                    flow[:, :, 0] += np.arange(w)
+                    flow[:, :, 1] += np.arange(h)[:, np.newaxis]
+                    halludiff = hallu - previousImg
+                    halludiff = cv2.remap(halludiff, flow, None, cv2.INTER_LINEAR)
+                    hallu = img + halludiff
+
+                    now = time.time()
+                    hallu = getFrame(net, hallu, endparam)
+                    later = time.time()
+                    difference = int(later - now)
+                    saveframe = os.path.joint(outputdir, 'frame_%06d.png' % (var_counter))
+                    getStats(saveframe, var_counter, numframe, difference)
+
+                    np.clip(hallu, 0, 255, out=hallu)
+                    PIL.Image.fromarray(np.uint8(hallu)).save(saveframe)
+                    var_counter += 1
+                else:
+                    print 'Finished processing all frames'
     else:
         # process anim frames
         for v in range(numframe):
