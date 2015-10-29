@@ -112,11 +112,12 @@ def make_sure_path_exists(path):
             raise
 
 
-def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter, zoom, stepsize, blend, layers, guide,
+def main(inputdir, outputdir, modeldir, preview, octaves, octave_scale, iterations, jitter, zoom, stepsize, blend, layers, guide,
          gpu, flow, binocular):
     # input var setup
     make_sure_path_exists(inputdir)
     make_sure_path_exists(outputdir)
+    if modeldir is None: modeldir = '../../caffe/models/'
     if preview is None: preview = 0
     if octaves is None: octaves = 4
     if octave_scale is None: octave_scale = 1.5
@@ -129,15 +130,12 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
     if layers is None: layers = ['inception_4c/output']
     if gpu is None: gpu = 1
     if flow is None: flow = 0
-    if binocular is None:
-        binocular = 0
-    else if binocular != 0:
-        assert(flow != 0) # currently binocular and optic flow are meant to work together
+    if binocular is None: binocular = 0
     # net.blobs.keys()
 
     # Loading DNN model
     model_name = 'bvlc_googlenet'
-    model_path = os.path.join('../../caffe/models/', model_name)
+    model_path = os.path.join(modeldir, model_name)
     net_fn = os.path.join(model_path, 'deploy.prototxt')
     param_fn = os.path.join(model_path, 'bvlc_googlenet.caffemodel')
 
@@ -157,7 +155,7 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
         caffe.set_device(0)
 
     # load images & sort them
-    if binocular = 1:
+    if binocular is 1:
         vidinput_left  = os.listdir(os.path.join(inputdir, 'Left'))
         vidinput_right = os.listdir(os.path.join(inputdir, 'Right'))
         vids = [[],[]]
@@ -426,6 +424,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='DeepDreamAnim')
     parser.add_argument('-i', '--input', help='Input directory', required=True)
     parser.add_argument('-o', '--output', help='Output directory', required=True)
+    parser.add_argument('-m', '--model', help='Model directory', required=False)
     parser.add_argument('-p', '--preview', help='Preview image width. Default: 0', type=int, required=False)
     parser.add_argument('-oct', '--octaves', help='Octaves. Default: 4', type=int, required=False)
     parser.add_argument('-octs', '--octavescale', help='Octave Scale. Default: 1.4', type=float, required=False)
@@ -454,5 +453,5 @@ if __name__ == "__main__":
         if args.framerate is not None: framerate = args.framerate
         createVideo(args.input, args.output, framerate)
     else:
-        main(args.input, args.output, args.preview, args.octaves, args.octavescale, args.iterations, args.jitter,
+        main(args.input, args.output, args.model, args.preview, args.octaves, args.octavescale, args.iterations, args.jitter,
              args.zoom, args.stepsize, args.blend, args.layers, args.guide, args.gpu, args.flow, args.binocular)
