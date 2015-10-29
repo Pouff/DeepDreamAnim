@@ -293,14 +293,26 @@ def main(inputdir, outputdir, preview, octaves, octave_scale, iterations, jitter
 
                     imgRight = np.float32(PIL.Image.open(newframeRight))
                     grayImgRight = cv2.cvtColor(imgRight, cv2.COLOR_RGB2GRAY)
-                    flow = cv2.calcOpticalFlowFarneback(previousGrayImgRight, grayImgRight, pyr_scale=0.5, levels=3, winsize=15,
+
+                    # Flow from previous frame to current frame
+                    flowPrev = cv2.calcOpticalFlowFarneback(previousGrayImgRight, grayImgRight, pyr_scale=0.5, levels=3, winsize=15,
                                                         iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
-                    flow = -flow
-                    flow[:, :, 0] += np.arange(w)
-                    flow[:, :, 1] += np.arange(h)[:, np.newaxis]
+                    flowPrev = -flowPrev
+                    flowPrev[:, :, 0] += np.arange(w)
+                    flowPrev[:, :, 1] += np.arange(h)[:, np.newaxis]
                     halludiffRight = halluRight - previousImgRight
-                    halludiffRight = cv2.remap(halludiffRight, flow, None, cv2.INTER_LINEAR)
-                    halluRight = imgRight + halludiffRight
+                    halludiffRight = cv2.remap(halludiffRight, flowPrev, None, cv2.INTER_LINEAR)
+
+                    # Flow from left frame to right frame
+                    flowLeft = cv2.calcOpticalFlowFarneback(grayImgLeft, grayImgRight, pyr_scale=0.5, levels=3, winsize=15,
+                                                        iterations=3, poly_n=5, poly_sigma=1.2, flags=0)
+                    flowLeft = -flowLeft
+                    flowLeft[:, :, 0] += np.arange(w)
+                    flowLeft[:, :, 1] += np.arange(h)[:, np.newaxis]
+                    halludiffLeft = halluLeft - imgLeft
+                    halludiffLeft = cv2.remap(halludiffLeft, flowLeft, None, cv2.INTER_LINEAR)
+
+                    halluRight = imgRight + halludiffRight / 2 + halludiffLeft / 2
 
                     now = time.time()
                     halluRight = getFrame(net, halluRight, endparam)
