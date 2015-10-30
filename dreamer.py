@@ -179,12 +179,12 @@ def main(inputdir, outputdir, modeldir, preview, octaves, octave_scale, iteratio
         frame0 = vids[0]
         numframe = len(vids)
 
-    var_counter = 1
+        img = PIL.Image.open(os.path.join(inputdir, frame0))
+        if preview is not 0:
+            img = resizePicture(os.path.join(inputdir, frame0), preview)
+        frame = np.float32(img)
 
-    img = PIL.Image.open(os.path.join(inputdir, frame0))
-    if preview is not 0:
-        img = resizePicture(os.path.join(inputdir, frame0), preview)
-    frame = np.float32(img)
+    var_counter = 1
 
     # guide
     if guide is not None:
