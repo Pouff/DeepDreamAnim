@@ -279,11 +279,14 @@ def main(inputdir, outputdir, modeldir, preview, octaves, octave_scale, iteratio
                     halluLeft = getFrame(net, halluLeft, endparam)
                     later = time.time()
                     difference = int(later - now)
-                    saveframe = os.path.joint(outputdir, 'Left', 'frame_%06d.png' % (var_counter))
+                    saveframe = os.path.join(outputdir, 'Left', 'frame_%06d.png' % (var_counter))
                     getStats(saveframe, var_counter, numframe, difference)
 
                     np.clip(halluLeft, 0, 255, out=halluLeft)
                     PIL.Image.fromarray(np.uint8(halluLeft)).save(saveframe)
+
+                    previousImgRight = imgRight
+                    previousGrayImgRight = grayImgRight
 
                     newframeRight = os.path.join(inputdir, 'Right', vids[1][v + 1])
                     print 'Processing: ' + newframeRight
@@ -316,14 +319,11 @@ def main(inputdir, outputdir, modeldir, preview, octaves, octave_scale, iteratio
                     halluRight = getFrame(net, halluRight, endparam)
                     later = time.time()
                     difference = int(later - now)
-                    saveframe = os.path.joint(outputdir, 'Right', 'frame_%06d.png' % (var_counter))
+                    saveframe = os.path.join(outputdir, 'Right', 'frame_%06d.png' % (var_counter))
                     getStats(saveframe, var_counter, numframe, difference)
 
                     np.clip(halluRight, 0, 255, out=halluRight)
                     PIL.Image.fromarray(np.uint8(halluRight)).save(saveframe)
-
-                    previousImgRight = imgRight
-                    previousGrayImgRight = grayImgRight
 
                     var_counter += 1
                 else:
@@ -360,7 +360,7 @@ def main(inputdir, outputdir, modeldir, preview, octaves, octave_scale, iteratio
                     hallu = getFrame(net, hallu, endparam)
                     later = time.time()
                     difference = int(later - now)
-                    saveframe = os.path.joint(outputdir, 'frame_%06d.png' % (var_counter))
+                    saveframe = os.path.join(outputdir, 'frame_%06d.png' % (var_counter))
                     getStats(saveframe, var_counter, numframe, difference)
 
                     np.clip(hallu, 0, 255, out=hallu)
